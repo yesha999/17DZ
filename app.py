@@ -3,6 +3,7 @@ from flask import Flask, request
 from flask_restx import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow import Schema, fields
+from django.core.paginator import Paginator
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
@@ -68,11 +69,22 @@ class MoviesView(Resource):
         if genre_id is not None:
             all_movies_query = all_movies_query.filter(Movie.genre_id == genre_id)
 
-        all_movies_json = movies_schema.dump(all_movies_query)    # Через браузер слетает кодировка,
-        return all_movies_json, 200                         # а через постман русские слова
-                                                            # остаются русскими, как исправить?
+        all_movies_json = movies_schema.dump(all_movies_query)
 
-        # /movies — возвращает список всех фильмов, разделенный по страницам; - как разделить по страницам?
+        page_number = args.get('page')
+        if page_number is not None:
+            paginator = Paginator(all_movies_json, 3)
+            page_obj = paginator.get_page(page_number)
+            page_movies = []
+            for movie in page_obj:
+                page_movies.append(movie)
+            return page_movies, 200
+
+        return all_movies_json, 200
+
+
+
+
 
 
 @movie_ns.route('/<int:id>')
